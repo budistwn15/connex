@@ -1,0 +1,57 @@
+# Example patch: replace hardcoded DB pool settings in an existing service
+
+diff --git a/internal/infrastructure/db/mysql.go b/internal/infrastructure/db/mysql.go
+index 1111111..2222222 100644
+--- a/internal/infrastructure/db/mysql.go
++++ b/internal/infrastructure/db/mysql.go
+@@ -1,14 +1,24 @@
+ package db
+ 
+ import (
+-	"time"
++	"log"
+ 
++	"github.com/budistwn15/connex"
+ 	"gorm.io/driver/mysql"
+ 	"gorm.io/gorm"
+ )
+ 
+ func OpenMySQL(dsn string) (*gorm.DB, error) {
+ 	gdb, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+ 	if err != nil {
+ 		return nil, err
+ 	}
+ 
+ 	sqlDB, err := gdb.DB()
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	sqlDB.SetMaxOpenConns(50)
+-	sqlDB.SetMaxIdleConns(10)
+-	sqlDB.SetConnMaxLifetime(time.Hour)
+-	sqlDB.SetConnMaxIdleTime(10 * time.Minute)
++
++	defaultCfg := connex.DefaultConfig()
++	envCfg, err := connex.FromEnv("")
++	if err != nil {
++		return nil, err
++	}
++	centralCfg, err := loadPoolFromCenter() // e.g. fetch JSON then connex.FromJSON(...)
++	if err != nil {
++		return nil, err
++	}
++
++	poolCfg := connex.Merge(defaultCfg, envCfg, centralCfg)
++	poolCfg, warnings, err := connex.Normalize(poolCfg)
++	if err != nil {
++		return nil, err
++	}
++	if err := connex.Apply(sqlDB, poolCfg); err != nil {
++		return nil, err
++	}
++	if stats, err := connex.Stats(sqlDB); err == nil {
++		connex.LogApplied(log.Default(), poolCfg, warnings, stats)
++	}
+ 
+ 	return gdb, nil
+ }

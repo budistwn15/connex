@@ -1,0 +1,19 @@
+# Go build and test artifacts
+bin/
+dist/
+coverage.out
+*.test
+*.out
+
+# Dependency/vendor (optional)
+vendor/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE/editor
+.idea/
+.vscode/
+.DS_Store

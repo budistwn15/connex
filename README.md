@@ -134,8 +134,9 @@ Urutan prioritas:
 
 Catatan `zero-value`:
 
-- Secara umum `0` dianggap `not set`.
-- Khusus `MaxIdle`, nilai `0` valid. Implementasi `Merge` memakai strategy internal supaya `MaxIdle=0` tetap bisa override saat layer tersebut memang membawa konfigurasi.
+- Merge berbasis metadata `field-set` internal (dari `FromEnv`/`FromMap`/`FromJSON`), bukan sekadar nilai.
+- `0` bisa menjadi override valid jika field memang explicit diset pada layer tersebut.
+- Contoh: env tidak set `DB_POOL_CONN_MAX_LIFETIME_SEC` -> default dipakai; env set `DB_POOL_CONN_MAX_LIFETIME_SEC=0` -> override ke `0` (disable lifetime rotation).
 
 ## Migration Guide dari Hardcoded
 

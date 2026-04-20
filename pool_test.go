@@ -56,14 +56,57 @@ func TestNormalize_ErrorCases(t *testing.T) {
 
 func TestMerge_Precedence(t *testing.T) {
 	defaultCfg := PoolConfig{MaxOpen: 50, MaxIdle: 10, ConnMaxLifetimeSec: 3600, ConnMaxIdleTimeSec: 600, Source: "default", Version: "v1"}
-	envCfg := PoolConfig{MaxOpen: 40, MaxIdle: 0, ConnMaxLifetimeSec: 1800, Source: "env"}
-	centralCfg := PoolConfig{MaxOpen: 25, Version: "v2", Source: "central"}
+	envCfg, err := FromMap(map[string]any{
+		"max_open":              40,
+		"max_idle":              0,
+		"conn_max_lifetime_sec": 1800,
+		"source":                "env",
+	})
+	if err != nil {
+		t.Fatalf("from map env: %v", err)
+	}
+	centralCfg, err := FromMap(map[string]any{
+		"max_open": 25,
+		"version":  "v2",
+		"source":   "central",
+	})
+	if err != nil {
+		t.Fatalf("from map central: %v", err)
+	}
 
 	merged := Merge(defaultCfg, envCfg, centralCfg)
 
-	want := PoolConfig{MaxOpen: 25, MaxIdle: 0, ConnMaxLifetimeSec: 1800, ConnMaxIdleTimeSec: 600, Source: "central", Version: "v2"}
-	if merged != want {
-		t.Fatalf("unexpected merged config\nwant: %+v\n got: %+v", want, merged)
+	if merged.MaxOpen != 25 || merged.MaxIdle != 0 || merged.ConnMaxLifetimeSec != 1800 || merged.ConnMaxIdleTimeSec != 600 || merged.Source != "central" || merged.Version != "v2" {
+		t.Fatalf("unexpected merged config: %+v", merged)
+	}
+}
+
+func TestMerge_SourceOnly_DoesNotOverrideMaxIdle(t *testing.T) {
+	defaultCfg := PoolConfig{MaxOpen: 50, MaxIdle: 10, ConnMaxLifetimeSec: 3600, ConnMaxIdleTimeSec: 600}
+	envCfg, err := FromMap(map[string]any{"source": "env-only"})
+	if err != nil {
+		t.Fatalf("from map: %v", err)
+	}
+
+	merged := Merge(defaultCfg, envCfg, PoolConfig{})
+	if merged.MaxIdle != 10 {
+		t.Fatalf("expected MaxIdle to stay 10, got %d", merged.MaxIdle)
+	}
+}
+
+func TestMerge_ExplicitZeroDurationOverridesDefault(t *testing.T) {
+	defaultCfg := PoolConfig{MaxOpen: 50, MaxIdle: 10, ConnMaxLifetimeSec: 3600, ConnMaxIdleTimeSec: 600}
+	envCfg, err := FromMap(map[string]any{
+		"conn_max_lifetime_sec":  0,
+		"conn_max_idle_time_sec": 0,
+	})
+	if err != nil {
+		t.Fatalf("from map: %v", err)
+	}
+
+	merged := Merge(defaultCfg, envCfg, PoolConfig{})
+	if merged.ConnMaxLifetimeSec != 0 || merged.ConnMaxIdleTimeSec != 0 {
+		t.Fatalf("expected zero duration override, got lifetime=%d idle_time=%d", merged.ConnMaxLifetimeSec, merged.ConnMaxIdleTimeSec)
 	}
 }
 

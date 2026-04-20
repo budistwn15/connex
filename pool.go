@@ -15,7 +15,19 @@ type PoolConfig struct {
 	ConnMaxIdleTimeSec int
 	Source             string // Optional source identifier for observability.
 	Version            string // Optional config version for observability.
+	setMask            fieldMask
 }
+
+type fieldMask uint8
+
+const (
+	fieldMaxOpen fieldMask = 1 << iota
+	fieldMaxIdle
+	fieldConnMaxLifetimeSec
+	fieldConnMaxIdleTimeSec
+	fieldSource
+	fieldVersion
+)
 
 // PoolStats is a lightweight view of sql.DB stats for observability.
 type PoolStats struct {
@@ -93,37 +105,28 @@ func Merge(defaultCfg, envCfg, centralCfg PoolConfig) PoolConfig {
 }
 
 func applyLayer(dst *PoolConfig, layer PoolConfig) {
-	if layer.MaxOpen != 0 {
+	if isSet(layer, fieldMaxOpen) || layer.MaxOpen != 0 {
 		dst.MaxOpen = layer.MaxOpen
 	}
-	if isMaxIdleSet(layer) {
+	if isSet(layer, fieldMaxIdle) || layer.MaxIdle != 0 {
 		dst.MaxIdle = layer.MaxIdle
 	}
-	if layer.ConnMaxLifetimeSec != 0 {
+	if isSet(layer, fieldConnMaxLifetimeSec) || layer.ConnMaxLifetimeSec != 0 {
 		dst.ConnMaxLifetimeSec = layer.ConnMaxLifetimeSec
 	}
-	if layer.ConnMaxIdleTimeSec != 0 {
+	if isSet(layer, fieldConnMaxIdleTimeSec) || layer.ConnMaxIdleTimeSec != 0 {
 		dst.ConnMaxIdleTimeSec = layer.ConnMaxIdleTimeSec
 	}
-	if layer.Source != "" {
+	if isSet(layer, fieldSource) || layer.Source != "" {
 		dst.Source = layer.Source
 	}
-	if layer.Version != "" {
+	if isSet(layer, fieldVersion) || layer.Version != "" {
 		dst.Version = layer.Version
 	}
 }
 
-// MaxIdle can be 0 as valid value, so we treat it as explicitly set when
-// layer carries at least one non-zero/non-empty signal, or MaxIdle itself is non-zero.
-func isMaxIdleSet(layer PoolConfig) bool {
-	if layer.MaxIdle != 0 {
-		return true
-	}
-	return layer.MaxOpen != 0 ||
-		layer.ConnMaxLifetimeSec != 0 ||
-		layer.ConnMaxIdleTimeSec != 0 ||
-		layer.Source != "" ||
-		layer.Version != ""
+func isSet(cfg PoolConfig, field fieldMask) bool {
+	return (cfg.setMask & field) != 0
 }
 
 // Stats returns a simplified snapshot of sql.DB runtime pool stats.

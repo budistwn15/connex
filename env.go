@@ -17,30 +17,44 @@ func FromEnv(prefix string) (PoolConfig, error) {
 		prefix = defaultEnvPrefix
 	}
 
-	cfg := PoolConfig{}
+	patch := poolConfigPatch{}
 	var err error
+	var found bool
+	var parsed int
 
-	if cfg.MaxOpen, _, err = lookupInt(prefix + "MAX_OPEN"); err != nil {
+	if parsed, found, err = lookupInt(prefix + "MAX_OPEN"); err != nil {
 		return PoolConfig{}, err
 	}
-	if cfg.MaxIdle, _, err = lookupInt(prefix + "MAX_IDLE"); err != nil {
+	if found {
+		patch.MaxOpen = intPtr(parsed)
+	}
+	if parsed, found, err = lookupInt(prefix + "MAX_IDLE"); err != nil {
 		return PoolConfig{}, err
 	}
-	if cfg.ConnMaxLifetimeSec, _, err = lookupInt(prefix + "CONN_MAX_LIFETIME_SEC"); err != nil {
+	if found {
+		patch.MaxIdle = intPtr(parsed)
+	}
+	if parsed, found, err = lookupInt(prefix + "CONN_MAX_LIFETIME_SEC"); err != nil {
 		return PoolConfig{}, err
 	}
-	if cfg.ConnMaxIdleTimeSec, _, err = lookupInt(prefix + "CONN_MAX_IDLE_TIME_SEC"); err != nil {
+	if found {
+		patch.ConnMaxLifetimeSec = intPtr(parsed)
+	}
+	if parsed, found, err = lookupInt(prefix + "CONN_MAX_IDLE_TIME_SEC"); err != nil {
 		return PoolConfig{}, err
+	}
+	if found {
+		patch.ConnMaxIdleTimeSec = intPtr(parsed)
 	}
 
 	if v, ok := os.LookupEnv(prefix + "SOURCE"); ok {
-		cfg.Source = strings.TrimSpace(v)
+		patch.Source = stringPtr(strings.TrimSpace(v))
 	}
 	if v, ok := os.LookupEnv(prefix + "VERSION"); ok {
-		cfg.Version = strings.TrimSpace(v)
+		patch.Version = stringPtr(strings.TrimSpace(v))
 	}
 
-	return cfg, nil
+	return patch.toPoolConfig(), nil
 }
 
 func lookupInt(key string) (int, bool, error) {

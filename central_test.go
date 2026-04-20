@@ -17,9 +17,8 @@ func TestFromMap_SnakeCase(t *testing.T) {
 		t.Fatalf("from map: %v", err)
 	}
 
-	want := PoolConfig{MaxOpen: 80, MaxIdle: 10, ConnMaxLifetimeSec: 1200, ConnMaxIdleTimeSec: 300, Source: "central", Version: "v1"}
-	if cfg != want {
-		t.Fatalf("unexpected cfg\nwant: %+v\n got: %+v", want, cfg)
+	if cfg.MaxOpen != 80 || cfg.MaxIdle != 10 || cfg.ConnMaxLifetimeSec != 1200 || cfg.ConnMaxIdleTimeSec != 300 || cfg.Source != "central" || cfg.Version != "v1" {
+		t.Fatalf("unexpected cfg: %+v", cfg)
 	}
 }
 
@@ -71,7 +70,7 @@ func TestFromJSON_Empty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("from json: %v", err)
 	}
-	if cfg != (PoolConfig{}) {
+	if cfg.MaxOpen != 0 || cfg.MaxIdle != 0 || cfg.ConnMaxLifetimeSec != 0 || cfg.ConnMaxIdleTimeSec != 0 || cfg.Source != "" || cfg.Version != "" {
 		t.Fatalf("expected zero config, got %+v", cfg)
 	}
 }

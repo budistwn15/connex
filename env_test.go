@@ -47,3 +47,27 @@ func TestFromEnv_EmptyValue(t *testing.T) {
 		t.Fatal("expected empty value error")
 	}
 }
+
+func TestMerge_EnvUnsetVsEnvZero_DifferentBehavior(t *testing.T) {
+	defaultCfg := DefaultConfig()
+
+	envUnset, err := FromEnv("ENV_UNSET_")
+	if err != nil {
+		t.Fatalf("from env unset: %v", err)
+	}
+	mergedUnset := Merge(defaultCfg, envUnset, PoolConfig{})
+	if mergedUnset.ConnMaxLifetimeSec != defaultCfg.ConnMaxLifetimeSec || mergedUnset.ConnMaxIdleTimeSec != defaultCfg.ConnMaxIdleTimeSec {
+		t.Fatalf("expected unset env to keep defaults, got %+v", mergedUnset)
+	}
+
+	t.Setenv("DB_POOL_CONN_MAX_LIFETIME_SEC", "0")
+	t.Setenv("DB_POOL_CONN_MAX_IDLE_TIME_SEC", "0")
+	envZero, err := FromEnv("")
+	if err != nil {
+		t.Fatalf("from env zero: %v", err)
+	}
+	mergedZero := Merge(defaultCfg, envZero, PoolConfig{})
+	if mergedZero.ConnMaxLifetimeSec != 0 || mergedZero.ConnMaxIdleTimeSec != 0 {
+		t.Fatalf("expected explicit zero env to override durations, got %+v", mergedZero)
+	}
+}

@@ -30,52 +30,52 @@ func FromMap(raw map[string]any) (PoolConfig, error) {
 		return PoolConfig{}, nil
 	}
 
-	cfg := PoolConfig{}
+	patch := poolConfigPatch{}
 
 	if v, ok := lookupAny(raw, "max_open"); ok {
 		parsed, err := toInt(v)
 		if err != nil {
 			return PoolConfig{}, fmt.Errorf("max_open: %w", err)
 		}
-		cfg.MaxOpen = parsed
+		patch.MaxOpen = intPtr(parsed)
 	}
 	if v, ok := lookupAny(raw, "max_idle"); ok {
 		parsed, err := toInt(v)
 		if err != nil {
 			return PoolConfig{}, fmt.Errorf("max_idle: %w", err)
 		}
-		cfg.MaxIdle = parsed
+		patch.MaxIdle = intPtr(parsed)
 	}
 	if v, ok := lookupAny(raw, "conn_max_lifetime_sec"); ok {
 		parsed, err := toInt(v)
 		if err != nil {
 			return PoolConfig{}, fmt.Errorf("conn_max_lifetime_sec: %w", err)
 		}
-		cfg.ConnMaxLifetimeSec = parsed
+		patch.ConnMaxLifetimeSec = intPtr(parsed)
 	}
 	if v, ok := lookupAny(raw, "conn_max_idle_time_sec"); ok {
 		parsed, err := toInt(v)
 		if err != nil {
 			return PoolConfig{}, fmt.Errorf("conn_max_idle_time_sec: %w", err)
 		}
-		cfg.ConnMaxIdleTimeSec = parsed
+		patch.ConnMaxIdleTimeSec = intPtr(parsed)
 	}
 	if v, ok := lookupAny(raw, "source"); ok {
 		s, err := toString(v)
 		if err != nil {
 			return PoolConfig{}, fmt.Errorf("source: %w", err)
 		}
-		cfg.Source = s
+		patch.Source = stringPtr(s)
 	}
 	if v, ok := lookupAny(raw, "version"); ok {
 		s, err := toString(v)
 		if err != nil {
 			return PoolConfig{}, fmt.Errorf("version: %w", err)
 		}
-		cfg.Version = s
+		patch.Version = stringPtr(s)
 	}
 
-	return cfg, nil
+	return patch.toPoolConfig(), nil
 }
 
 func lookupAny(m map[string]any, key string) (any, bool) {

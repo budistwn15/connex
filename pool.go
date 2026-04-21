@@ -96,7 +96,9 @@ func Apply(sqlDB *sql.DB, cfg PoolConfig) error {
 }
 
 // Merge combines config layers with precedence: central > env > default.
-// Zero values mean "not set", except MaxIdle where 0 can be intentional.
+// Merge is field-set aware for configs produced by FromEnv/FromMap/FromJSON/Patch.Config:
+// explicitly set values (including zero) override lower-priority layers.
+// For plain struct literals without set metadata, non-zero/non-empty values are treated as set.
 func Merge(defaultCfg, envCfg, centralCfg PoolConfig) PoolConfig {
 	result := defaultCfg
 	applyLayer(&result, envCfg)

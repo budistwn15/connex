@@ -1,6 +1,8 @@
 package connex
 
-type poolConfigPatch struct {
+// Patch represents field-set aware overrides.
+// Use pointers so explicit zero values are distinguishable from "not set".
+type Patch struct {
 	MaxOpen            *int
 	MaxIdle            *int
 	ConnMaxLifetimeSec *int
@@ -9,7 +11,28 @@ type poolConfigPatch struct {
 	Version            *string
 }
 
-func (p poolConfigPatch) toPoolConfig() PoolConfig {
+// NewPatch creates an empty patch for fluent/manual assignment.
+func NewPatch() Patch {
+	return Patch{}
+}
+
+// Ptr returns a pointer to v. Useful for explicit overrides, including zero values.
+func Ptr[T any](v T) *T {
+	return &v
+}
+
+// Int returns pointer to int.
+func Int(v int) *int {
+	return &v
+}
+
+// String returns pointer to string.
+func String(v string) *string {
+	return &v
+}
+
+// Config materializes a patch into PoolConfig with field-set metadata.
+func (p Patch) Config() PoolConfig {
 	cfg := PoolConfig{}
 
 	if p.MaxOpen != nil {
@@ -39,7 +62,3 @@ func (p poolConfigPatch) toPoolConfig() PoolConfig {
 
 	return cfg
 }
-
-func intPtr(v int) *int { return &v }
-
-func stringPtr(v string) *string { return &v }

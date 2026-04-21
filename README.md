@@ -17,6 +17,9 @@ go get github.com/budistwn15/connex
 - `MustFromEnv(prefix string) PoolConfig`
 - `MustFromMap(raw map[string]any) PoolConfig`
 - `MustFromJSON(data []byte) PoolConfig`
+- `type Patch struct { ... }` + `Patch.Config() PoolConfig`
+- `NewPatch() Patch`
+- `Ptr[T any](v T) *T`, `Int(v int) *int`, `String(v string) *string`
 - `Normalize(cfg PoolConfig) (PoolConfig, []string, error)`
 - `Apply(sqlDB *sql.DB, cfg PoolConfig) error`
 - `Merge(defaultCfg, envCfg, centralCfg PoolConfig) PoolConfig`
@@ -113,6 +116,21 @@ Contoh lengkap:
 `FromJSON` adalah wrapper tipis untuk decode JSON lalu delegasi ke `FromMap`.
 
 `Must*` helpers cocok untuk bootstrap/fail-fast startup; fungsi ini panic jika parsing gagal.
+
+### Manual Explicit Override (Field-Set Aware)
+
+Gunakan `Patch` saat perlu explicit override nilai `0` secara manual.
+
+```go
+defaultCfg := connex.DefaultConfig()
+
+manual := connex.Patch{
+	ConnMaxLifetimeSec: connex.Int(0), // explicit set to 0 (disable lifetime rotation)
+	ConnMaxIdleTimeSec: connex.Ptr(0), // generic helper
+}
+
+cfg := connex.Merge(defaultCfg, envCfg, manual.Config())
+```
 
 ## Validasi & Normalisasi
 
